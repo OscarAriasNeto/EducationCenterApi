@@ -1,4 +1,4 @@
-﻿namespace EducationalCenter.Api.DTOs;
+﻿namespace EducationCenter.DTOs;
 
 public class VideoDto
 {

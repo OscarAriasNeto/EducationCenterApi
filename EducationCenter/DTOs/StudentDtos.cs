@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace EducationalCenter.Api.DTOs;
+namespace EducationCenter.DTOs;
 
 public class StudentDto
 {
@@ -26,10 +26,8 @@ public class StudentDetailDto
     public string FullName { get; set; } = default!;
     public string Email { get; set; } = default!;
     public DateTime BirthDate { get; set; }
-
     public int? TargetProfessionId { get; set; }
     public string? TargetProfessionName { get; set; }
-
     public IEnumerable<StudentLearningPathDto> EnrolledLearningPaths { get; set; }
         = new List<StudentLearningPathDto>();
 }

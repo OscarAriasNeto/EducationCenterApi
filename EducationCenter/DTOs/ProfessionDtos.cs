@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using EducationalCenter.Api.DTOs;
+using System.Collections.Generic;
 
-namespace EducationalCenter.Api.DTOs;
+namespace EducationCenter.DTOs;
 
 public class ProfessionDto
 {
@@ -15,7 +16,6 @@ public class ProfessionDetailDto
     public string Name { get; set; } = default!;
     public string Description { get; set; } = default!;
     public string MarketOverview { get; set; } = default!;
-
     public IEnumerable<LearningPathSummaryDto> LearningPaths { get; set; }
         = new List<LearningPathSummaryDto>();
 }
