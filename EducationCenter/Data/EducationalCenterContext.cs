@@ -23,14 +23,12 @@ public class EducationalCenterContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Chaves compostas das tabelas de junção
         modelBuilder.Entity<LearningPathVideo>()
             .HasKey(lp => new { lp.LearningPathId, lp.VideoId });
 
         modelBuilder.Entity<StudentLearningPath>()
             .HasKey(sl => new { sl.StudentId, sl.LearningPathId });
 
-        // SEED de profissões (3 exemplos de TI)
         modelBuilder.Entity<Profession>().HasData(
             new Profession
             {

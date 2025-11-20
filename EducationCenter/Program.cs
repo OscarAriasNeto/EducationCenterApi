@@ -1,5 +1,4 @@
 using EducationalCenter.Api.Data;
-using EducationCenter.Data;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);

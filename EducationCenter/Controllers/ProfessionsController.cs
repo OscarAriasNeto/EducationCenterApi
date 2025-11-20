@@ -37,4 +37,50 @@ public class ProfessionsController : ControllerBase
 
         return Ok(profession.ToDetailDto());
     }
+
+    // POST api/professions
+    [HttpPost]
+    public async Task<ActionResult<ProfessionDetailDto>> Create([FromBody] ProfessionCreateDto dto)
+    {
+        var entity = dto.FromCreateDto();
+        _context.Professions.Add(entity);
+        await _context.SaveChangesAsync();
+
+        // recarrega com include para devolver detailDto
+        var created = await _context.Professions
+            .Include(p => p.LearningPaths)
+            .FirstAsync(p => p.Id == entity.Id);
+
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = created.Id },
+            created.ToDetailDto()
+        );
+    }
+
+    // PUT api/professions/1
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, [FromBody] ProfessionUpdateDto dto)
+    {
+        var entity = await _context.Professions.FindAsync(id);
+        if (entity == null) return NotFound();
+
+        entity.UpdateFromDto(dto);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    // DELETE api/professions/1
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var entity = await _context.Professions.FindAsync(id);
+        if (entity == null) return NotFound();
+
+        _context.Professions.Remove(entity);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
 }

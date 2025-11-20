@@ -1,5 +1,6 @@
 ﻿using EducationalCenter.Api.Data;
 using EducationalCenter.Api.DTOs;
+using EducationalCenter.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -41,5 +42,93 @@ public class LearningPathsController : ControllerBase
         if (lp == null) return NotFound();
 
         return Ok(lp.ToDetailDto());
+    }
+
+    // POST api/learningpaths
+    [HttpPost]
+    public async Task<ActionResult<LearningPathDetailDto>> Create([FromBody] LearningPathCreateDto dto)
+    {
+        var entity = dto.FromCreateDto();
+        _context.LearningPaths.Add(entity);
+        await _context.SaveChangesAsync();
+
+        // relaciona vídeos, se vierem IDs
+        if (dto.VideoIds is not null)
+        {
+            int order = 1;
+            foreach (var videoId in dto.VideoIds.Distinct())
+            {
+                _context.LearningPathVideos.Add(new LearningPathVideo
+                {
+                    LearningPathId = entity.Id,
+                    VideoId = videoId,
+                    Order = order++
+                });
+            }
+            await _context.SaveChangesAsync();
+        }
+
+        var created = await _context.LearningPaths
+            .Include(l => l.Profession)
+            .Include(l => l.LearningPathVideos)
+                .ThenInclude(lpv => lpv.Video)
+            .FirstAsync(l => l.Id == entity.Id);
+
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = created.Id },
+            created.ToDetailDto()
+        );
+    }
+
+    // PUT api/learningpaths/1
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, [FromBody] LearningPathUpdateDto dto)
+    {
+        var entity = await _context.LearningPaths
+            .Include(l => l.LearningPathVideos)
+            .FirstOrDefaultAsync(l => l.Id == id);
+
+        if (entity == null) return NotFound();
+
+        entity.UpdateFromDto(dto);
+
+        // se VideoIds vierem, sobrescreve associação de vídeos
+        if (dto.VideoIds is not null)
+        {
+            _context.LearningPathVideos.RemoveRange(entity.LearningPathVideos);
+
+            int order = 1;
+            foreach (var videoId in dto.VideoIds.Distinct())
+            {
+                _context.LearningPathVideos.Add(new LearningPathVideo
+                {
+                    LearningPathId = entity.Id,
+                    VideoId = videoId,
+                    Order = order++
+                });
+            }
+        }
+
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // DELETE api/learningpaths/1
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var entity = await _context.LearningPaths
+            .Include(l => l.LearningPathVideos)
+            .FirstOrDefaultAsync(l => l.Id == id);
+
+        if (entity == null) return NotFound();
+
+        _context.LearningPathVideos.RemoveRange(entity.LearningPathVideos);
+        _context.LearningPaths.Remove(entity);
+
+        await _context.SaveChangesAsync();
+
+        return NoContent();
     }
 }

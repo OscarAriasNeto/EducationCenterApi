@@ -25,6 +25,16 @@ public class VideosController : ControllerBase
         return Ok(dtos);
     }
 
+    // GET api/videos/5
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<VideoDto>> GetById(int id)
+    {
+        var video = await _context.Videos.FindAsync(id);
+        if (video == null) return NotFound();
+
+        return Ok(video.ToDto());
+    }
+
     // GET api/videos/by-trail/1
     [HttpGet("by-trail/{learningPathId:int}")]
     public async Task<ActionResult<IEnumerable<VideoDto>>> GetByLearningPath(int learningPathId)
@@ -38,5 +48,46 @@ public class VideosController : ControllerBase
 
         var dtos = videos.Select(v => v.ToDto()).ToList();
         return Ok(dtos);
+    }
+
+    // POST api/videos
+    [HttpPost]
+    public async Task<ActionResult<VideoDto>> Create([FromBody] VideoCreateDto dto)
+    {
+        var entity = dto.FromCreateDto();
+        _context.Videos.Add(entity);
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = entity.Id },
+            entity.ToDto()
+        );
+    }
+
+    // PUT api/videos/5
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, [FromBody] VideoUpdateDto dto)
+    {
+        var entity = await _context.Videos.FindAsync(id);
+        if (entity == null) return NotFound();
+
+        entity.UpdateFromDto(dto);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    // DELETE api/videos/5
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var entity = await _context.Videos.FindAsync(id);
+        if (entity == null) return NotFound();
+
+        _context.Videos.Remove(entity);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
     }
 }
