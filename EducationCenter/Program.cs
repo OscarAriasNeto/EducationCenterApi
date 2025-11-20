@@ -1,68 +1,101 @@
-using EducationCenter.Data;
+ï»¿using EducationCenter.Data;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Mvc;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc.Versioning;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ========== LOGGING ==========
-builder.Logging.ClearProviders();      // limpa provedores padrões
-builder.Logging.AddConsole();          // log no console (bom pra debug/docker)
+// =======================================================================
+// LOGGING
+// =======================================================================
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 
-// ========== DB CONTEXT ==========
+// =======================================================================
+// DATABASE (InMemory)
+// =======================================================================
 builder.Services.AddDbContext<EducationalCenterContext>(options =>
     options.UseInMemoryDatabase("EducationalCenterDb"));
-// se depois trocar pra SQL Server, só trocar o UseInMemoryDatabase por UseSqlServer
 
-// ========== HEALTH CHECKS ==========
+// =======================================================================
+// API VERSIONING
+// =======================================================================
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+
+    // versÃ£o via URL â†’ /api/v1/students
+    options.ApiVersionReader = new UrlSegmentApiVersionReader();
+
+    // retorna "api-supported-versions" no header
+    options.ReportApiVersions = true;
+});
+
+// Permite que o Swagger enxergue mÃºltiplas versÃµes
+builder.Services.AddVersionedApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV"; // v1, v2
+    options.SubstituteApiVersionInUrl = true;
+});
+
+// =======================================================================
+// HEALTH CHECKS
+// =======================================================================
 builder.Services.AddHealthChecks()
-    // health check básico do contexto de banco (InMemory vai dar sempre healthy;
-    // se usar SQL Server, ele vai testar conexão)
     .AddDbContextCheck<EducationalCenterContext>("database");
 
-// ========== TRACING (OpenTelemetry) ==========
+// =======================================================================
+// TRACING (OpenTelemetry)
+// =======================================================================
 builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource =>
-        resource.AddService("EducationCenter.Api")) // nome do serviço para observabilidade
-    .WithTracing(tracing =>
+    .ConfigureResource(r => r.AddService("EducationCenter.Api"))
+    .WithTracing(t =>
     {
-        tracing.AddAspNetCoreInstrumentation(); // requests HTTP da API
-        tracing.AddHttpClientInstrumentation(); // chamadas HttpClient
-        // se usar SQL Server, pode futuramente adicionar: tracing.AddSqlClientInstrumentation();
-        tracing.AddConsoleExporter();           // envia os traces para o console
+        t.AddAspNetCoreInstrumentation();
+        t.AddHttpClientInstrumentation();
+        t.AddConsoleExporter();
     });
 
+// =======================================================================
+// CONTROLLERS + SWAGGER
+// =======================================================================
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// =======================================================================
+// SWAGGER
+// =======================================================================
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+// =======================================================================
+// MIDDLEWARES
+// =======================================================================
 app.UseHttpsRedirection();
 
-app.MapControllers();
-
-// ========== ENDPOINTS DE HEALTH CHECK ==========
-
-// Liveness: só diz se a app está de pé
+// =======================================================================
+// HEALTH CHECK ENDPOINTS
+// =======================================================================
 app.MapHealthChecks("/health/live");
 
-// Readiness: dá um JSON com status dos checks (incluindo banco)
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     Predicate = _ => true,
-    ResponseWriter = async (context, report) =>
+    ResponseWriter = async (ctx, report) =>
     {
-        context.Response.ContentType = "application/json";
+        ctx.Response.ContentType = "application/json";
 
         var result = new
         {
@@ -75,8 +108,10 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
             })
         };
 
-        await context.Response.WriteAsync(JsonSerializer.Serialize(result));
+        await ctx.Response.WriteAsync(JsonSerializer.Serialize(result));
     }
 });
+
+app.MapControllers();
 
 app.Run();
