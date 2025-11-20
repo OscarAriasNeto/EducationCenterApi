@@ -1,5 +1,5 @@
 ﻿using EducationalCenter.Api.Data;
-using EducationalCenter.Api.Models;
+using EducationalCenter.Api.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,21 +18,25 @@ public class VideosController : ControllerBase
 
     // GET api/videos
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Video>>> GetAll()
+    public async Task<ActionResult<IEnumerable<VideoDto>>> GetAll()
     {
-        return await _context.Videos.ToListAsync();
+        var videos = await _context.Videos.ToListAsync();
+        var dtos = videos.Select(v => v.ToDto()).ToList();
+        return Ok(dtos);
     }
 
     // GET api/videos/by-trail/1
     [HttpGet("by-trail/{learningPathId:int}")]
-    public async Task<ActionResult<IEnumerable<Video>>> GetByLearningPath(int learningPathId)
+    public async Task<ActionResult<IEnumerable<VideoDto>>> GetByLearningPath(int learningPathId)
     {
         var videos = await _context.LearningPathVideos
             .Where(lp => lp.LearningPathId == learningPathId)
+            .Include(lp => lp.Video)
             .OrderBy(lp => lp.Order)
             .Select(lp => lp.Video)
             .ToListAsync();
 
-        return videos;
+        var dtos = videos.Select(v => v.ToDto()).ToList();
+        return Ok(dtos);
     }
 }

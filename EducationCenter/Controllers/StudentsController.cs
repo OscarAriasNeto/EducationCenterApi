@@ -1,5 +1,5 @@
 ﻿using EducationalCenter.Api.Data;
-using EducationalCenter.Api.Models;
+using EducationalCenter.Api.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,16 +18,19 @@ public class StudentsController : ControllerBase
 
     // GET api/students
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Student>>> GetAll()
+    public async Task<ActionResult<IEnumerable<StudentDto>>> GetAll()
     {
-        return await _context.Students
+        var entities = await _context.Students
             .Include(s => s.TargetProfession)
             .ToListAsync();
+
+        var dtos = entities.Select(s => s.ToDto()).ToList();
+        return Ok(dtos);
     }
 
     // GET api/students/1
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<Student>> GetById(int id)
+    public async Task<ActionResult<StudentDetailDto>> GetById(int id)
     {
         var student = await _context.Students
             .Include(s => s.TargetProfession)
@@ -37,6 +40,6 @@ public class StudentsController : ControllerBase
 
         if (student == null) return NotFound();
 
-        return student;
+        return Ok(student.ToDetailDto());
     }
 }

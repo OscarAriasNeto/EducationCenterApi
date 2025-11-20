@@ -1,5 +1,5 @@
 ﻿using EducationalCenter.Api.Data;
-using EducationalCenter.Api.Models;
+using EducationalCenter.Api.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,24 +18,28 @@ public class LearningPathsController : ControllerBase
 
     // GET api/learningpaths
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<LearningPath>>> GetAll()
+    public async Task<ActionResult<IEnumerable<LearningPathSummaryDto>>> GetAll()
     {
-        return await _context.LearningPaths
+        var entities = await _context.LearningPaths
             .Include(lp => lp.Profession)
             .ToListAsync();
+
+        var dtos = entities.Select(lp => lp.ToSummaryDto()).ToList();
+        return Ok(dtos);
     }
 
     // GET api/learningpaths/1
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<LearningPath>> GetById(int id)
+    public async Task<ActionResult<LearningPathDetailDto>> GetById(int id)
     {
         var lp = await _context.LearningPaths
             .Include(l => l.Profession)
-            .Include(l => l.LearningPathVideos).ThenInclude(x => x.Video)
+            .Include(l => l.LearningPathVideos)
+                .ThenInclude(x => x.Video)
             .FirstOrDefaultAsync(l => l.Id == id);
 
         if (lp == null) return NotFound();
 
-        return lp;
+        return Ok(lp.ToDetailDto());
     }
 }

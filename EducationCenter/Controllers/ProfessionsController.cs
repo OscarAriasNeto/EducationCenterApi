@@ -1,5 +1,5 @@
 ﻿using EducationalCenter.Api.Data;
-using EducationalCenter.Api.Models;
+using EducationalCenter.Api.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,14 +18,16 @@ public class ProfessionsController : ControllerBase
 
     // GET api/professions
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Profession>>> GetAll()
+    public async Task<ActionResult<IEnumerable<ProfessionDto>>> GetAll()
     {
-        return await _context.Professions.ToListAsync();
+        var entities = await _context.Professions.ToListAsync();
+        var dtos = entities.Select(p => p.ToDto()).ToList();
+        return Ok(dtos);
     }
 
     // GET api/professions/1
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<Profession>> GetById(int id)
+    public async Task<ActionResult<ProfessionDetailDto>> GetById(int id)
     {
         var profession = await _context.Professions
             .Include(p => p.LearningPaths)
@@ -33,6 +35,6 @@ public class ProfessionsController : ControllerBase
 
         if (profession == null) return NotFound();
 
-        return profession;
+        return Ok(profession.ToDetailDto());
     }
 }
