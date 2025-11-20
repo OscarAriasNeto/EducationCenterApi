@@ -1,6 +1,4 @@
-﻿using EducationalCenter.Api.Models;
-
-namespace EducationCenter.Models;
+﻿namespace EducationCenter.Models;
 
 public class Profession
 {

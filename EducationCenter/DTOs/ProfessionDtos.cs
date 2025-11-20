@@ -1,4 +1,4 @@
-﻿using EducationalCenter.Api.DTOs;
+﻿using EducationCenter.DTOs;
 using System.Collections.Generic;
 
 namespace EducationCenter.DTOs;

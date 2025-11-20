@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EducationCenter.Controllers;
 
+
 [ApiController]
 [Route("api/[controller]")]
 public class StudentsController : ControllerBase

@@ -1,13 +1,11 @@
-using EducationalCenter.Api.Data;
+using EducationCenter.Data;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// EF Core (InMemory pra testar rápido)
 builder.Services.AddDbContext<EducationalCenterContext>(options =>
     options.UseInMemoryDatabase("EducationalCenterDb"));
 
-// Se quiser SQL Server, depois trocamos pra UseSqlServer
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -22,7 +20,5 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.MapControllers();
-
 app.Run();

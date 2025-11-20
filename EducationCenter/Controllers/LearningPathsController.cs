@@ -1,10 +1,11 @@
-﻿using EducationalCenter.Api.Data;
-using EducationalCenter.Api.DTOs;
-using EducationalCenter.Api.Models;
+﻿using EducationCenter.Data;
+using EducationCenter.DTOs;
+using EducationCenter.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EducationalCenter.Api.Controllers;
+namespace EducationCenter.Controllers;
+
 
 [ApiController]
 [Route("api/[controller]")]
