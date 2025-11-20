@@ -1,15 +1,21 @@
+using EducationalCenter.Api.Data;
+using EducationCenter.Data;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// EF Core (InMemory pra testar rápido)
+builder.Services.AddDbContext<EducationalCenterContext>(options =>
+    options.UseInMemoryDatabase("EducationalCenterDb"));
+
+// Se quiser SQL Server, depois trocamos pra UseSqlServer
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -17,8 +23,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-app.UseAuthorization();
 
 app.MapControllers();
 
