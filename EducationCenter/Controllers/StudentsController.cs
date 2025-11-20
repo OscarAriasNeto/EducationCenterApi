@@ -3,6 +3,7 @@ using EducationCenter.DTOs;
 using EducationCenter.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace EducationCenter.Controllers;
 
@@ -11,11 +12,16 @@ namespace EducationCenter.Controllers;
 public class StudentsController : ControllerBase
 {
     private readonly EducationalCenterContext _context;
+    private readonly ILogger<StudentsController> _logger;
 
-    public StudentsController(EducationalCenterContext context)
+    public StudentsController(
+        EducationalCenterContext context,
+        ILogger<StudentsController> logger)
     {
         _context = context;
+        _logger = logger;
     }
+
 
     // GET api/students?pageNumber=1&pageSize=10
     [HttpGet(Name = "GetStudents")]

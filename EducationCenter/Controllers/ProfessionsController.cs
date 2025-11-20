@@ -4,6 +4,7 @@ using EducationCenter.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace EducationCenter.Controllers;
 
@@ -12,10 +13,14 @@ namespace EducationCenter.Controllers;
 public class ProfessionsController : ControllerBase
 {
     private readonly EducationalCenterContext _context;
+    private readonly ILogger<ProfessionsController> _logger;
 
-    public ProfessionsController(EducationalCenterContext context)
+    public ProfessionsController(
+        EducationalCenterContext context,
+        ILogger<ProfessionsController> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     // GET api/professions?pageNumber=1&pageSize=10
@@ -25,21 +30,25 @@ public class ProfessionsController : ControllerBase
         int pageNumber = 1,
         int pageSize = 10)
     {
+        _logger.LogInformation("GET /professions page={Page} size={Size}", pageNumber, pageSize);
+
         if (pageNumber <= 0 || pageSize <= 0)
-            return BadRequest("pageNumber e pageSize devem ser maiores que zero.");
+        {
+            _logger.LogWarning("Parâmetros inválidos: pageNumber={Page}, pageSize={Size}", pageNumber, pageSize);
+            return BadRequest("Os parâmetros de paginação devem ser maiores que zero.");
+        }
 
         var query = _context.Professions.AsNoTracking();
 
         var totalItems = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-        var entities = await query
+        var items = await query
             .OrderBy(p => p.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
+            .Select(p => p.ToDto())
             .ToListAsync();
-
-        var items = entities.Select(p => p.ToDto()).ToList();
 
         var response = new PagedResponse<ProfessionDto>
         {
@@ -60,18 +69,22 @@ public class ProfessionsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Resource<ProfessionDetailDto>>> GetById(int id)
     {
+        _logger.LogInformation("GET /professions/{Id}", id);
+
         var profession = await _context.Professions
             .Include(p => p.LearningPaths)
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id);
 
-        if (profession == null) return NotFound();
-
-        var dto = profession.ToDetailDto();
+        if (profession == null)
+        {
+            _logger.LogWarning("Profession {Id} não encontrada.", id);
+            return NotFound();
+        }
 
         var resource = new Resource<ProfessionDetailDto>
         {
-            Data = dto,
+            Data = profession.ToDetailDto(),
             Links = BuildProfessionLinks(id)
         };
 
@@ -82,10 +95,12 @@ public class ProfessionsController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(Resource<ProfessionDetailDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<Resource<ProfessionDetailDto>>> Create(
-        [FromBody] ProfessionCreateDto dto)
+    public async Task<ActionResult<Resource<ProfessionDetailDto>>> Create([FromBody] ProfessionCreateDto dto)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        _logger.LogInformation("POST /professions criando profissão {Name}", dto.Name);
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         var entity = dto.FromCreateDto();
         _context.Professions.Add(entity);
@@ -96,32 +111,29 @@ public class ProfessionsController : ControllerBase
             .AsNoTracking()
             .FirstAsync(p => p.Id == entity.Id);
 
-        var detailDto = created.ToDetailDto();
-
         var resource = new Resource<ProfessionDetailDto>
         {
-            Data = detailDto,
-            Links = BuildProfessionLinks(created.Id)
+            Data = created.ToDetailDto(),
+            Links = BuildProfessionLinks(entity.Id)
         };
 
-        return CreatedAtRoute(
-            routeName: "GetProfessionById",
-            routeValues: new { id = created.Id },
-            value: resource
-        );
+        return CreatedAtRoute("GetProfessionById", new { id = entity.Id }, resource);
     }
 
     // PUT api/professions/1
     [HttpPut("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Update(int id, [FromBody] ProfessionUpdateDto dto)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        _logger.LogInformation("PUT /professions/{Id}", id);
 
         var entity = await _context.Professions.FindAsync(id);
-        if (entity == null) return NotFound();
+        if (entity == null)
+        {
+            _logger.LogWarning("Tentativa de editar profissão inexistente {Id}", id);
+            return NotFound();
+        }
 
         entity.UpdateFromDto(dto);
         await _context.SaveChangesAsync();
@@ -135,8 +147,11 @@ public class ProfessionsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id)
     {
+        _logger.LogInformation("DELETE /professions/{Id}", id);
+
         var entity = await _context.Professions.FindAsync(id);
-        if (entity == null) return NotFound();
+        if (entity == null)
+            return NotFound();
 
         _context.Professions.Remove(entity);
         await _context.SaveChangesAsync();
@@ -144,72 +159,30 @@ public class ProfessionsController : ControllerBase
         return NoContent();
     }
 
-    // ===== HATEOAS helpers =====
-
+    // ===== HATEOAS =====
     private IEnumerable<LinkDto> BuildProfessionLinks(int id)
     {
-        var links = new List<LinkDto>
+        return new List<LinkDto>
         {
-            new()
-            {
-                Href = Url.Link("GetProfessionById", new { id })!,
-                Rel = "self",
-                Method = "GET"
-            },
-            new()
-            {
-                Href = Url.Link("GetProfessions", new { pageNumber = 1, pageSize = 10 })!,
-                Rel = "professions",
-                Method = "GET"
-            },
-            new()
-            {
-                Href = Url.Action(nameof(Update), values: new { id })!,
-                Rel = "update_profession",
-                Method = "PUT"
-            },
-            new()
-            {
-                Href = Url.Action(nameof(Delete), values: new { id })!,
-                Rel = "delete_profession",
-                Method = "DELETE"
-            }
+            new() { Href = Url.Link("GetProfessionById", new { id })!, Rel = "self", Method = "GET" },
+            new() { Href = Url.Link("GetProfessions", new { pageNumber = 1, pageSize = 10 })!, Rel = "all", Method = "GET" },
+            new() { Href = Url.Action(nameof(Update), new { id })!, Rel = "update", Method = "PUT" },
+            new() { Href = Url.Action(nameof(Delete), new { id })!, Rel = "delete", Method = "DELETE" }
         };
-
-        return links;
     }
 
     private IEnumerable<LinkDto> BuildProfessionsCollectionLinks(int pageNumber, int pageSize, int totalPages)
     {
         var links = new List<LinkDto>
         {
-            new()
-            {
-                Href = Url.Link("GetProfessions", new { pageNumber, pageSize })!,
-                Rel = "self",
-                Method = "GET"
-            }
+            new() { Href = Url.Link("GetProfessions", new { pageNumber, pageSize })!, Rel = "self", Method = "GET" }
         };
 
         if (pageNumber > 1)
-        {
-            links.Add(new LinkDto
-            {
-                Href = Url.Link("GetProfessions", new { pageNumber = pageNumber - 1, pageSize })!,
-                Rel = "prev_page",
-                Method = "GET"
-            });
-        }
+            links.Add(new LinkDto { Href = Url.Link("GetProfessions", new { pageNumber = pageNumber - 1, pageSize })!, Rel = "prev", Method = "GET" });
 
         if (pageNumber < totalPages)
-        {
-            links.Add(new LinkDto
-            {
-                Href = Url.Link("GetProfessions", new { pageNumber = pageNumber + 1, pageSize })!,
-                Rel = "next_page",
-                Method = "GET"
-            });
-        }
+            links.Add(new LinkDto { Href = Url.Link("GetProfessions", new { pageNumber = pageNumber + 1, pageSize })!, Rel = "next", Method = "GET" });
 
         return links;
     }

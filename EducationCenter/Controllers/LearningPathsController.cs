@@ -2,8 +2,8 @@
 using EducationCenter.DTOs;
 using EducationCenter.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace EducationCenter.Controllers;
 
@@ -12,21 +12,23 @@ namespace EducationCenter.Controllers;
 public class LearningPathsController : ControllerBase
 {
     private readonly EducationalCenterContext _context;
+    private readonly ILogger<LearningPathsController> _logger;
 
-    public LearningPathsController(EducationalCenterContext context)
+    public LearningPathsController(
+        EducationalCenterContext context,
+        ILogger<LearningPathsController> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     // GET api/learningpaths?pageNumber=1&pageSize=10
     [HttpGet(Name = "GetLearningPaths")]
-    [ProducesResponseType(typeof(PagedResponse<LearningPathSummaryDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResponse<LearningPathSummaryDto>>> GetAll(
         int pageNumber = 1,
         int pageSize = 10)
     {
-        if (pageNumber <= 0 || pageSize <= 0)
-            return BadRequest("pageNumber e pageSize devem ser maiores que zero.");
+        _logger.LogInformation("GET /learningpaths page={Page} size={Size}", pageNumber, pageSize);
 
         var query = _context.LearningPaths
             .Include(lp => lp.Profession)
@@ -35,76 +37,70 @@ public class LearningPathsController : ControllerBase
         var totalItems = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-        var entities = await query
+        var items = await query
             .OrderBy(lp => lp.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
+            .Select(lp => lp.ToSummaryDto())
             .ToListAsync();
 
-        var items = entities.Select(lp => lp.ToSummaryDto()).ToList();
-
-        var response = new PagedResponse<LearningPathSummaryDto>
+        return Ok(new PagedResponse<LearningPathSummaryDto>
         {
             Items = items,
             PageNumber = pageNumber,
             PageSize = pageSize,
             TotalItems = totalItems,
             TotalPages = totalPages,
-            Links = BuildLearningPathsCollectionLinks(pageNumber, pageSize, totalPages)
-        };
-
-        return Ok(response);
+            Links = BuildPathsCollectionLinks(pageNumber, pageSize, totalPages)
+        });
     }
 
     // GET api/learningpaths/1
     [HttpGet("{id:int}", Name = "GetLearningPathById")]
-    [ProducesResponseType(typeof(Resource<LearningPathDetailDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Resource<LearningPathDetailDto>>> GetById(int id)
     {
+        _logger.LogInformation("GET /learningpaths/{Id}", id);
+
         var lp = await _context.LearningPaths
             .Include(l => l.Profession)
             .Include(l => l.LearningPathVideos)
-                .ThenInclude(lpv => lpv.Video)
+            .ThenInclude(lpv => lpv.Video)
             .AsNoTracking()
             .FirstOrDefaultAsync(l => l.Id == id);
 
-        if (lp == null) return NotFound();
+        if (lp == null)
+            return NotFound();
 
         var dto = lp.ToDetailDto();
 
-        var resource = new Resource<LearningPathDetailDto>
+        return Ok(new Resource<LearningPathDetailDto>
         {
             Data = dto,
-            Links = BuildLearningPathLinks(id)
-        };
-
-        return Ok(resource);
+            Links = BuildPathLinks(id)
+        });
     }
 
     // POST api/learningpaths
     [HttpPost]
-    [ProducesResponseType(typeof(Resource<LearningPathDetailDto>), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<Resource<LearningPathDetailDto>>> Create(
-        [FromBody] LearningPathCreateDto dto)
+    public async Task<ActionResult<Resource<LearningPathDetailDto>>> Create([FromBody] LearningPathCreateDto dto)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         var entity = dto.FromCreateDto();
         _context.LearningPaths.Add(entity);
         await _context.SaveChangesAsync();
 
-        // relaciona vídeos, se vierem IDs
+        // associa vídeos
         if (dto.VideoIds is not null)
         {
             int order = 1;
-            foreach (var videoId in dto.VideoIds.Distinct())
+            foreach (var vid in dto.VideoIds.Distinct())
             {
                 _context.LearningPathVideos.Add(new LearningPathVideo
                 {
                     LearningPathId = entity.Id,
-                    VideoId = videoId,
+                    VideoId = vid,
                     Order = order++
                 });
             }
@@ -112,56 +108,43 @@ public class LearningPathsController : ControllerBase
         }
 
         var created = await _context.LearningPaths
-            .Include(l => l.Profession)
-            .Include(l => l.LearningPathVideos)
-                .ThenInclude(lpv => lpv.Video)
+            .Include(lp => lp.Profession)
+            .Include(lp => lp.LearningPathVideos)
+            .ThenInclude(lpv => lpv.Video)
             .AsNoTracking()
-            .FirstAsync(l => l.Id == entity.Id);
+            .FirstAsync(lp => lp.Id == entity.Id);
 
-        var detailDto = created.ToDetailDto();
-
-        var resource = new Resource<LearningPathDetailDto>
+        return CreatedAtRoute("GetLearningPathById", new { id = entity.Id }, new Resource<LearningPathDetailDto>
         {
-            Data = detailDto,
-            Links = BuildLearningPathLinks(created.Id)
-        };
-
-        return CreatedAtRoute(
-            routeName: "GetLearningPathById",
-            routeValues: new { id = created.Id },
-            value: resource
-        );
+            Data = created.ToDetailDto(),
+            Links = BuildPathLinks(entity.Id)
+        });
     }
 
     // PUT api/learningpaths/1
     [HttpPut("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Update(int id, [FromBody] LearningPathUpdateDto dto)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
-
         var entity = await _context.LearningPaths
-            .Include(l => l.LearningPathVideos)
-            .FirstOrDefaultAsync(l => l.Id == id);
+            .Include(lp => lp.LearningPathVideos)
+            .FirstOrDefaultAsync(lp => lp.Id == id);
 
-        if (entity == null) return NotFound();
+        if (entity == null)
+            return NotFound();
 
         entity.UpdateFromDto(dto);
 
-        // se VideoIds vierem, sobrescreve associação de vídeos
         if (dto.VideoIds is not null)
         {
             _context.LearningPathVideos.RemoveRange(entity.LearningPathVideos);
 
             int order = 1;
-            foreach (var videoId in dto.VideoIds.Distinct())
+            foreach (var vid in dto.VideoIds.Distinct())
             {
                 _context.LearningPathVideos.Add(new LearningPathVideo
                 {
-                    LearningPathId = entity.Id,
-                    VideoId = videoId,
+                    LearningPathId = id,
+                    VideoId = vid,
                     Order = order++
                 });
             }
@@ -173,15 +156,14 @@ public class LearningPathsController : ControllerBase
 
     // DELETE api/learningpaths/1
     [HttpDelete("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id)
     {
         var entity = await _context.LearningPaths
-            .Include(l => l.LearningPathVideos)
-            .FirstOrDefaultAsync(l => l.Id == id);
+            .Include(lp => lp.LearningPathVideos)
+            .FirstOrDefaultAsync(lp => lp.Id == id);
 
-        if (entity == null) return NotFound();
+        if (entity == null)
+            return NotFound();
 
         _context.LearningPathVideos.RemoveRange(entity.LearningPathVideos);
         _context.LearningPaths.Remove(entity);
@@ -190,72 +172,30 @@ public class LearningPathsController : ControllerBase
         return NoContent();
     }
 
-    // ===== HATEOAS helpers =====
-
-    private IEnumerable<LinkDto> BuildLearningPathLinks(int id)
+    // ===== HATEOAS =====
+    private IEnumerable<LinkDto> BuildPathLinks(int id)
     {
-        var links = new List<LinkDto>
+        return new List<LinkDto>
         {
-            new()
-            {
-                Href = Url.Link("GetLearningPathById", new { id })!,
-                Rel = "self",
-                Method = "GET"
-            },
-            new()
-            {
-                Href = Url.Link("GetLearningPaths", new { pageNumber = 1, pageSize = 10 })!,
-                Rel = "learningpaths",
-                Method = "GET"
-            },
-            new()
-            {
-                Href = Url.Action(nameof(Update), values: new { id })!,
-                Rel = "update_learningpath",
-                Method = "PUT"
-            },
-            new()
-            {
-                Href = Url.Action(nameof(Delete), values: new { id })!,
-                Rel = "delete_learningpath",
-                Method = "DELETE"
-            }
+            new() { Href = Url.Link("GetLearningPathById", new { id })!, Rel = "self", Method = "GET" },
+            new() { Href = Url.Link("GetLearningPaths", new { pageNumber = 1, pageSize = 10 })!, Rel = "all", Method = "GET" },
+            new() { Href = Url.Action(nameof(Update), new { id })!, Rel = "update", Method = "PUT" },
+            new() { Href = Url.Action(nameof(Delete), new { id })!, Rel = "delete", Method = "DELETE" }
         };
-
-        return links;
     }
 
-    private IEnumerable<LinkDto> BuildLearningPathsCollectionLinks(int pageNumber, int pageSize, int totalPages)
+    private IEnumerable<LinkDto> BuildPathsCollectionLinks(int pageNumber, int pageSize, int totalPages)
     {
         var links = new List<LinkDto>
         {
-            new()
-            {
-                Href = Url.Link("GetLearningPaths", new { pageNumber, pageSize })!,
-                Rel = "self",
-                Method = "GET"
-            }
+            new() { Href = Url.Link("GetLearningPaths", new { pageNumber, pageSize })!, Rel = "self", Method = "GET" }
         };
 
         if (pageNumber > 1)
-        {
-            links.Add(new LinkDto
-            {
-                Href = Url.Link("GetLearningPaths", new { pageNumber = pageNumber - 1, pageSize })!,
-                Rel = "prev_page",
-                Method = "GET"
-            });
-        }
+            links.Add(new LinkDto { Href = Url.Link("GetLearningPaths", new { pageNumber = pageNumber - 1, pageSize })!, Rel = "prev", Method = "GET" });
 
         if (pageNumber < totalPages)
-        {
-            links.Add(new LinkDto
-            {
-                Href = Url.Link("GetLearningPaths", new { pageNumber = pageNumber + 1, pageSize })!,
-                Rel = "next_page",
-                Method = "GET"
-            });
-        }
+            links.Add(new LinkDto { Href = Url.Link("GetLearningPaths", new { pageNumber = pageNumber + 1, pageSize })!, Rel = "next", Method = "GET" });
 
         return links;
     }
