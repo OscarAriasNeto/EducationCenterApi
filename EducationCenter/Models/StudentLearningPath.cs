@@ -1,4 +1,4 @@
-﻿namespace EducationalCenter.Api.Models;
+﻿namespace EducationCenter.Models;
 
 public class StudentLearningPath
 {
@@ -9,5 +9,5 @@ public class StudentLearningPath
     public LearningPath LearningPath { get; set; } = default!;
 
     public DateTime EnrollmentDate { get; set; }
-    public int ProgressPercent { get; set; } // 0–100
+    public int ProgressPercent { get; set; }
 }

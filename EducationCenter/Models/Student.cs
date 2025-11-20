@@ -1,6 +1,6 @@
-﻿using EducationCenter.Models;
+﻿using EducationalCenter.Api.Models;
 
-namespace EducationalCenter.Api.Models;
+namespace EducationCenter.Models;
 
 public class Student
 {
@@ -9,7 +9,6 @@ public class Student
     public string Email { get; set; } = default!;
     public DateTime BirthDate { get; set; }
 
-    // Profissão de interesse do aluno
     public int? TargetProfessionId { get; set; }
     public Profession? TargetProfession { get; set; }
 

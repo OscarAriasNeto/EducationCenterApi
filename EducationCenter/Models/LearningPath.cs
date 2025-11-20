@@ -1,11 +1,11 @@
-﻿using EducationCenter.Models;
+﻿using EducationalCenter.Api.Models;
 
-namespace EducationalCenter.Api.Models;
+namespace EducationCenter.Models;
 
 public class LearningPath
 {
     public int Id { get; set; }
-    public string Title { get; set; } = default!;         // Ex: "Trilha Back-end Júnior"
+    public string Title { get; set; } = default!;
     public string Description { get; set; } = default!;
 
     public int ProfessionId { get; set; }

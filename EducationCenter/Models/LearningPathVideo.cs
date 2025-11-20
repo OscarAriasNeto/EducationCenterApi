@@ -1,4 +1,6 @@
-﻿namespace EducationalCenter.Api.Models;
+﻿using EducationalCenter.Api.Models;
+
+namespace EducationCenter.Models;
 
 public class LearningPathVideo
 {
@@ -8,5 +10,5 @@ public class LearningPathVideo
     public int VideoId { get; set; }
     public Video Video { get; set; } = default!;
 
-    public int Order { get; set; } // ordem do vídeo na trilha
+    public int Order { get; set; }
 }

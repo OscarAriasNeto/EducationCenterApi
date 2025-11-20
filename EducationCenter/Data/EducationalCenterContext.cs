@@ -1,14 +1,12 @@
-﻿using EducationalCenter.Api.Models;
+﻿using EducationCenter.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Reflection.Emit;
 
-namespace EducationalCenter.Api.Data;
+namespace EducationCenter.Data;
 
 public class EducationalCenterContext : DbContext
 {
     public EducationalCenterContext(DbContextOptions<EducationalCenterContext> options)
-    : base(options)
+        : base(options)
     {
     }
 
