@@ -33,3 +33,19 @@ public class StudentDetailDto
     public IEnumerable<StudentLearningPathDto> EnrolledLearningPaths { get; set; }
         = new List<StudentLearningPathDto>();
 }
+
+public class StudentCreateDto
+{
+    public string FullName { get; set; } = default!;
+    public string Email { get; set; } = default!;
+    public DateTime BirthDate { get; set; }
+    public int? TargetProfessionId { get; set; }
+}
+
+public class StudentUpdateDto
+{
+    public string FullName { get; set; } = default!;
+    public string Email { get; set; } = default!;
+    public DateTime BirthDate { get; set; }
+    public int? TargetProfessionId { get; set; }
+}

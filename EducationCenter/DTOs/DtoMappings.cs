@@ -1,12 +1,11 @@
 ﻿using System.Linq;
-using EducationalCenter.Api.DTOs;
 using EducationalCenter.Api.Models;
 
 namespace EducationalCenter.Api.DTOs;
 
 public static class DtoMappings
 {
-    // ===== Profession =====
+    // ===== Profession (READ) =====
     public static ProfessionDto ToDto(this Profession entity)
         => new()
         {
@@ -27,7 +26,23 @@ public static class DtoMappings
                 .ToList() ?? new()
         };
 
-    // ===== Video =====
+    // ===== Profession (WRITE) =====
+    public static Profession FromCreateDto(this ProfessionCreateDto dto)
+        => new()
+        {
+            Name = dto.Name,
+            Description = dto.Description,
+            MarketOverview = dto.MarketOverview
+        };
+
+    public static void UpdateFromDto(this Profession entity, ProfessionUpdateDto dto)
+    {
+        entity.Name = dto.Name;
+        entity.Description = dto.Description;
+        entity.MarketOverview = dto.MarketOverview;
+    }
+
+    // ===== Video (READ) =====
     public static VideoDto ToDto(this Video entity)
         => new()
         {
@@ -38,7 +53,25 @@ public static class DtoMappings
             DurationMinutes = entity.DurationMinutes
         };
 
-    // ===== LearningPath =====
+    // ===== Video (WRITE) =====
+    public static Video FromCreateDto(this VideoCreateDto dto)
+        => new()
+        {
+            Title = dto.Title,
+            Description = dto.Description,
+            Url = dto.Url,
+            DurationMinutes = dto.DurationMinutes
+        };
+
+    public static void UpdateFromDto(this Video entity, VideoUpdateDto dto)
+    {
+        entity.Title = dto.Title;
+        entity.Description = dto.Description;
+        entity.Url = dto.Url;
+        entity.DurationMinutes = dto.DurationMinutes;
+    }
+
+    // ===== LearningPath (READ) =====
     public static LearningPathSummaryDto ToSummaryDto(this LearningPath entity)
         => new()
         {
@@ -61,7 +94,25 @@ public static class DtoMappings
                 .ToList() ?? new()
         };
 
-    // ===== Student =====
+    // ===== LearningPath (WRITE) =====
+    public static LearningPath FromCreateDto(this LearningPathCreateDto dto)
+        => new()
+        {
+            Title = dto.Title,
+            Description = dto.Description,
+            ProfessionId = dto.ProfessionId
+            // vídeos serão tratados no controller, se VideoIds vier preenchido
+        };
+
+    public static void UpdateFromDto(this LearningPath entity, LearningPathUpdateDto dto)
+    {
+        entity.Title = dto.Title;
+        entity.Description = dto.Description;
+        entity.ProfessionId = dto.ProfessionId;
+        // vídeos também serão tratados no controller
+    }
+
+    // ===== Student (READ) =====
     public static StudentDto ToDto(this Student entity)
         => new()
         {
@@ -91,4 +142,22 @@ public static class DtoMappings
                 })
                 .ToList() ?? new()
         };
+
+    // ===== Student (WRITE) =====
+    public static Student FromCreateDto(this StudentCreateDto dto)
+        => new()
+        {
+            FullName = dto.FullName,
+            Email = dto.Email,
+            BirthDate = dto.BirthDate,
+            TargetProfessionId = dto.TargetProfessionId
+        };
+
+    public static void UpdateFromDto(this Student entity, StudentUpdateDto dto)
+    {
+        entity.FullName = dto.FullName;
+        entity.Email = dto.Email;
+        entity.BirthDate = dto.BirthDate;
+        entity.TargetProfessionId = dto.TargetProfessionId;
+    }
 }
