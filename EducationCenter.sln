@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35327.3
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EducationCenter", "EducationCenter\EducationCenter.csproj", "{E9E5A15F-AD84-497F-900D-EFB419BCB2AE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EducationCenter", "EducationCenter\EducationCenter.csproj", "{E9E5A15F-AD84-497F-900D-EFB419BCB2AE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EducationCenter.Tests", "EducationCenter.Tests\EducationCenter.Tests.csproj", "{FDE02994-20FA-4EC3-8B86-9692E1BAD3AD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{E9E5A15F-AD84-497F-900D-EFB419BCB2AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E9E5A15F-AD84-497F-900D-EFB419BCB2AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E9E5A15F-AD84-497F-900D-EFB419BCB2AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FDE02994-20FA-4EC3-8B86-9692E1BAD3AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FDE02994-20FA-4EC3-8B86-9692E1BAD3AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FDE02994-20FA-4EC3-8B86-9692E1BAD3AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FDE02994-20FA-4EC3-8B86-9692E1BAD3AD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
