@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using EducationCenter.Controllers;
+using EducationCenter.Controllers.v1;
 using EducationCenter.Data;
 using EducationCenter.DTOs;
 using EducationCenter.Models;
@@ -22,7 +22,6 @@ public class StudentsControllerTests
 
         var context = new EducationalCenterContext(options);
 
-        // seed básico
         context.Students.Add(new Student
         {
             Id = 1,
@@ -35,18 +34,28 @@ public class StudentsControllerTests
         return context;
     }
 
-    [Fact]
-    public async Task GetById_DeveRetornarOk_QuandoAlunoExiste()
+    private StudentsController CreateController(EducationalCenterContext context)
     {
-        // Arrange
-        var context = CreateContext();
         var loggerMock = new Mock<ILogger<StudentsController>>();
         var controller = new StudentsController(context, loggerMock.Object);
 
-        // Act
+        var urlHelperMock = new Mock<IUrlHelper>();
+        urlHelperMock
+            .Setup(x => x.Link(It.IsAny<string>(), It.IsAny<object>()))
+            .Returns("http://localhost/students");
+
+        controller.Url = urlHelperMock.Object;
+        return controller;
+    }
+
+    [Fact]
+    public async Task GetById_DeveRetornarOk_QuandoAlunoExiste()
+    {
+        var context = CreateContext();
+        var controller = CreateController(context);
+
         var result = await controller.GetById(1);
 
-        // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
         var resource = Assert.IsType<Resource<StudentDetailDto>>(okResult.Value);
         Assert.Equal(1, resource.Data.Id);
@@ -57,8 +66,7 @@ public class StudentsControllerTests
     public async Task GetById_DeveRetornarNotFound_QuandoAlunoNaoExiste()
     {
         var context = CreateContext();
-        var loggerMock = new Mock<ILogger<StudentsController>>();
-        var controller = new StudentsController(context, loggerMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.GetById(999);
 
@@ -69,8 +77,7 @@ public class StudentsControllerTests
     public async Task GetAll_DeveRetornarPaginado()
     {
         var context = CreateContext();
-        var loggerMock = new Mock<ILogger<StudentsController>>();
-        var controller = new StudentsController(context, loggerMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.GetAll(pageNumber: 1, pageSize: 10);
 

@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Threading.Tasks;
-using EducationCenter.Controllers;
+using EducationCenter.Controllers.v1;
 using EducationCenter.Data;
 using EducationCenter.DTOs;
 using EducationCenter.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing; // <- IMPORTANTE
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -35,12 +36,28 @@ public class VideosControllerTests
         return context;
     }
 
+    private VideosController CreateController(EducationalCenterContext context)
+    {
+        var controller = new VideosController(context);
+
+        var urlHelperMock = new Mock<IUrlHelper>();
+        urlHelperMock
+            .Setup(x => x.Link(It.IsAny<string>(), It.IsAny<object>()))
+            .Returns("http://localhost/link");
+
+        urlHelperMock
+            .Setup(x => x.Action(It.IsAny<UrlActionContext>()))
+            .Returns("http://localhost/action");
+
+        controller.Url = urlHelperMock.Object;
+        return controller;
+    }
+
     [Fact]
     public async Task GetById_DeveRetornarOk_QuandoVideoExiste()
     {
         var context = CreateContext();
-        var loggerMock = new Mock<ILogger<VideosController>>();
-        var controller = new VideosController(context);
+        var controller = CreateController(context);
 
         var result = await controller.GetById(1);
 
@@ -54,7 +71,7 @@ public class VideosControllerTests
     public async Task GetById_DeveRetornarNotFound_QuandoVideoNaoExiste()
     {
         var context = CreateContext();
-        var controller = new VideosController(context);
+        var controller = CreateController(context);
 
         var result = await controller.GetById(999);
 
@@ -65,7 +82,7 @@ public class VideosControllerTests
     public async Task GetAll_DeveRetornarListaPaginada()
     {
         var context = CreateContext();
-        var controller = new VideosController(context);
+        var controller = CreateController(context);
 
         var result = await controller.GetAll();
 

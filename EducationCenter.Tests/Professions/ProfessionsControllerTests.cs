@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using EducationCenter.Controllers;
+using EducationCenter.Controllers.v1;
 using EducationCenter.Data;
 using EducationCenter.DTOs;
 using EducationCenter.Models;
@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+
 
 namespace EducationCenter.Tests.Professions;
 

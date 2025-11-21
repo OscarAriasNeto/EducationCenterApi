@@ -1,11 +1,12 @@
-namespace EducationCenter.Tests
-{
-    public class UnitTest1
-    {
-        [Fact]
-        public void Test1()
-        {
+using Xunit;
 
-        }
+namespace EducationCenter.Tests;
+
+public class BasicHealthTests
+{
+    [Fact]
+    public void AlwaysTrue()
+    {
+        Assert.True(true);
     }
 }
