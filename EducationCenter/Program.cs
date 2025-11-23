@@ -5,6 +5,8 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
+using Oracle.EntityFrameworkCore;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,9 +17,11 @@ builder.Logging.AddConsole();
 // DB CONTEXT
 builder.Services.AddDbContext<EducationalCenterContext>(options =>
 {
-    var connString = builder.Configuration.GetConnectionString("OracleDb");
+    var connString = builder.Configuration.GetConnectionString("OracleDb")
+                     ?? throw new InvalidOperationException("Connection string 'OracleDb' não encontrada.");
     options.UseOracle(connString);
 });
+
 
 // HEALTH CHECKS (inclui teste do DbContext)
 builder.Services.AddHealthChecks()
