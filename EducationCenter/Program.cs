@@ -14,7 +14,10 @@ builder.Logging.AddConsole();
 
 // DB CONTEXT
 builder.Services.AddDbContext<EducationalCenterContext>(options =>
-    options.UseInMemoryDatabase("EducationalCenterDb"));
+{
+    var connString = builder.Configuration.GetConnectionString("OracleDb");
+    options.UseOracle(connString);
+});
 
 // HEALTH CHECKS (inclui teste do DbContext)
 builder.Services.AddHealthChecks()
@@ -33,16 +36,13 @@ builder.Services.AddOpenTelemetry()
 // MVC + API VERSIONING
 builder.Services.AddControllers();
 
-// >>> CONFIGURAÇÃO DE VERSIONAMENTO <<<
 builder.Services.AddApiVersioning(options =>
 {
-    // se não for informada versão, usa v1.0
     options.AssumeDefaultVersionWhenUnspecified = true;
     options.DefaultApiVersion = new ApiVersion(1, 0);
     options.ReportApiVersions = true;
 });
 
-// Necessário para o Swagger conseguir descobrir as versões
 builder.Services.AddVersionedApiExplorer(options =>
 {
     options.GroupNameFormat = "'v'VVV";      // v1, v1.0, etc
