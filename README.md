@@ -1,3 +1,8 @@
+Membros
+Oscar Arias Neto	556936
+Nicolas Souza dos Santos	555571
+Julia Martis Rebelles	554516
+
 # EducationCenter API
 
 API RESTful em .NET 8 para gerenciamento de trilhas de aprendizagem, profissões, alunos e vídeos, com:
