@@ -1,57 +1,59 @@
-﻿using System.Net.Http;
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 namespace EducationCenter.Services;
 
 public class GeminiClient
 {
     private readonly HttpClient _httpClient;
-    private readonly string _apiKey;
-    private readonly string _model;
+    private readonly GeminiOptions _options;
 
-    public GeminiClient(HttpClient httpClient, IConfiguration configuration)
+    public GeminiClient(HttpClient httpClient, IOptions<GeminiOptions> options)
     {
         _httpClient = httpClient;
-
-        _apiKey = configuration["Gemini:ApiKey"]
-                  ?? throw new InvalidOperationException("Gemini:ApiKey não configurado no appsettings.json.");
-
-        _model = configuration["Gemini:Model"] ?? "gemini-1.5-flash";
+        _options = options.Value;
     }
 
     public async Task<string> AskAsync(string prompt)
     {
-        var url = $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent?key={_apiKey}";
+        var url =
+            $"https://generativelanguage.googleapis.com/v1/models/{_options.Model}:generateContent?key={_options.ApiKey}";
 
-        var payload = new
+
+        var requestBody = new
         {
             contents = new[]
             {
-                new
+            new
+            {
+                parts = new[]
                 {
-                    parts = new[]
-                    {
-                        new { text = prompt }
-                    }
+                    new { text = prompt }
                 }
             }
+        }
         };
 
-        using var response = await _httpClient.PostAsJsonAsync(url, payload);
-        response.EnsureSuccessStatusCode();
+        var response = await _httpClient.PostAsJsonAsync(url, requestBody);
 
-        using var stream = await response.Content.ReadAsStreamAsync();
-        using var doc = await JsonDocument.ParseAsync(stream);
+        // SE der erro (404, 401, etc) não joga exceção: devolve uma mensagem explicando
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync();
+            return $"Erro ao chamar Gemini: {(int)response.StatusCode} - {response.ReasonPhrase}. Detalhes: {errorBody}";
+        }
 
-        var text = doc
-            .RootElement
+        using var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+        var root = doc.RootElement;
+
+        var text = root
             .GetProperty("candidates")[0]
             .GetProperty("content")
             .GetProperty("parts")[0]
             .GetProperty("text")
-            .GetString();
+            .GetString() ?? string.Empty;
 
-        return text ?? string.Empty;
+        return text;
     }
 }

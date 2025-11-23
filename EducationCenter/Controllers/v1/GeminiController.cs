@@ -15,23 +15,33 @@ public class GeminiController : ControllerBase
         _geminiClient = geminiClient;
     }
 
+    public class GeminiRequest
+    {
+        public string Prompt { get; set; } = string.Empty;
+    }
+
+    public class GeminiResponse
+    {
+        public string Prompt { get; set; } = string.Empty;
+        public string Answer { get; set; } = string.Empty;
+    }
+
     [HttpPost("ask")]
-    public async Task<ActionResult<object>> Ask([FromBody] GeminiRequest request)
+    [ProducesResponseType(typeof(GeminiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<GeminiResponse>> Ask([FromBody] GeminiRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Prompt))
             return BadRequest("Prompt é obrigatório.");
 
         var answer = await _geminiClient.AskAsync(request.Prompt);
 
-        return Ok(new
+        var response = new GeminiResponse
         {
-            request.Prompt,
+            Prompt = request.Prompt,
             Answer = answer
-        });
-    }
-}
+        };
 
-public class GeminiRequest
-{
-    public string Prompt { get; set; } = string.Empty;
+        return Ok(response);
+    }
 }
